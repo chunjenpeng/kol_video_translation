@@ -15,7 +15,13 @@ import (
 	"github.com/google/uuid"
 )
 
-// In-memory job storage (in production, use a database)
+// In-memory job storage
+// WARNING: This is a simple in-memory storage for demonstration purposes.
+// For production use, implement persistent storage using:
+// - Redis for distributed caching
+// - PostgreSQL/MySQL for relational data
+// - MongoDB for document storage
+// This will ensure data persistence across restarts and horizontal scaling.
 var (
 	jobs   = make(map[string]*models.TranslationJob)
 	jobsMu sync.RWMutex

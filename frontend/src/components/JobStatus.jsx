@@ -24,7 +24,14 @@ function JobStatus({ jobStatus, onNewTranslation, apiBaseUrl }) {
   };
 
   const handleDownload = () => {
-    window.open(`${apiBaseUrl}/download/${jobStatus.id}`, '_blank');
+    // Use anchor element with download attribute for secure downloads
+    const link = document.createElement('a');
+    link.href = `${apiBaseUrl}/download/${jobStatus.id}`;
+    link.download = `translated_video_${jobStatus.id}.mp4`;
+    link.rel = 'noopener noreferrer';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   return (

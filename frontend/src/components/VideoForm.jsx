@@ -16,8 +16,10 @@ function VideoForm({ languages, onSubmit }) {
       return;
     }
 
-    if (!youtubeUrl.includes('youtube.com') && !youtubeUrl.includes('youtu.be')) {
-      alert('Please enter a valid YouTube URL');
+    // Proper YouTube URL validation to prevent URL injection
+    const youtubeRegex = /^(https?:\/\/)?(www\.)?(youtube\.com\/watch\?v=|youtu\.be\/)[a-zA-Z0-9_-]{11}$/;
+    if (!youtubeRegex.test(youtubeUrl.trim())) {
+      alert('Please enter a valid YouTube URL (e.g., https://www.youtube.com/watch?v=...)');
       return;
     }
 

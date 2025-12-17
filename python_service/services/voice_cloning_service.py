@@ -13,11 +13,14 @@ class VoiceCloningService:
         logger.info("Loading TTS model...")
         try:
             # Using Coqui TTS with XTTS model for voice cloning
+            # Note: This requires TTS>=0.22.0
             self.tts = TTS("tts_models/multilingual/multi-dataset/xtts_v2")
-            logger.info("TTS model loaded successfully")
+            self.supports_voice_cloning = True
+            logger.info("TTS model loaded successfully with voice cloning support")
         except Exception as e:
             logger.warning(f"Failed to load XTTS model: {str(e)}, falling back to basic TTS")
             self.tts = TTS("tts_models/en/ljspeech/tacotron2-DDC")
+            self.supports_voice_cloning = False
     
     def generate_voice(self, translated_segments, original_audio_path, target_language, job_id):
         """Generate speech from translated text with voice cloning"""
@@ -34,7 +37,7 @@ class VoiceCloningService:
             
             try:
                 # Generate speech with voice cloning if available
-                if hasattr(self.tts, 'tts_to_file'):
+                if self.supports_voice_cloning:
                     self.tts.tts_to_file(
                         text=segment['text'],
                         file_path=segment_path,

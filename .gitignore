@@ -226,3 +226,4 @@ go.sum
 # Frontend
 frontend/dist/
 frontend/node_modules/
+backend/backend

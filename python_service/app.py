@@ -57,4 +57,7 @@ if __name__ == '__main__':
     os.makedirs('temp', exist_ok=True)
     
     port = int(os.getenv('PORT', 5000))
-    app.run(host='0.0.0.0', port=port, debug=True)
+    # Disable debug mode in production for security
+    # Debug mode should only be enabled in development with DEBUG=True env var
+    debug_mode = os.getenv('DEBUG', 'False').lower() in ('true', '1', 'yes')
+    app.run(host='0.0.0.0', port=port, debug=debug_mode)

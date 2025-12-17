@@ -86,7 +86,7 @@ class VideoProcessor:
             logger.info(f"Thumbnail generated: {thumbnail_path}")
             
             # Step 7: Merge video with new audio and captions
-            self.update_job_status(job_id, 'generating_voice', 90)
+            self.update_job_status(job_id, 'completed', 90)
             output_video_path = self._merge_video_audio(
                 video_path, translated_audio_path, captions_path, job_id
             )
