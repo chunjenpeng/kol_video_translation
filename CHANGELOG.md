@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.1] - 2024-01-15
+
+### Security
+
+- **CRITICAL:** Updated Pillow from 10.1.0 to 10.4.0 to fix buffer overflow vulnerability (CVE)
+- **CRITICAL:** Updated yt-dlp from 2023.12.30 to 2024.08.06 to fix:
+  - File system modification and RCE vulnerability
+  - Command injection vulnerability on Windows via `--exec` with `%q` (Bypass of CVE-2023-40581)
+
 ## [1.0.0] - 2024-01-15
 
 ### Added
@@ -80,6 +89,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed tabnabbing vulnerability in download function
 - Added GitHub Actions token permission restrictions
 - Documented security considerations and best practices
+- Used safe dependency versions (later updated in v1.0.1)
 
 ### Notes
 
