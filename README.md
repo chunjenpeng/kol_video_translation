@@ -275,6 +275,17 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 This project is licensed under the MIT License - see the LICENSE file for details.
 
+## Documentation
+
+- **[Quick Start](QUICKSTART.md)** - Get started in 5 minutes
+- **[Setup Guide](SETUP.md)** - Detailed installation instructions
+- **[API Documentation](API.md)** - Complete API reference
+- **[Architecture](ARCHITECTURE.md)** - System design and architecture
+- **[Security](SECURITY.md)** - Security considerations and best practices
+- **[Contributing](CONTRIBUTING.md)** - How to contribute
+- **[Changelog](CHANGELOG.md)** - Version history and changes
+- **[Examples](examples/)** - Code examples in Python and JavaScript
+
 ## Acknowledgments
 
 - OpenAI Whisper for speech-to-text
@@ -290,3 +301,5 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 - Implement rate limiting for production use
 - Add authentication for production deployment
 - Sanitize user inputs to prevent injection attacks
+
+See [SECURITY.md](SECURITY.md) for detailed security considerations.
