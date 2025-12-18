@@ -125,7 +125,7 @@ jobs:
     
     - name: Test Docker Compose Configuration
       run: |
-        docker-compose config
+        docker compose config
 
   test-e2e-browser:
     name: End-to-End Browser Test
@@ -148,7 +148,7 @@ jobs:
     
     - name: Build and start all services
       run: |
-        docker-compose up -d --build
+        docker compose up -d --build
     
     - name: Wait for services to be ready
       run: |
@@ -156,7 +156,7 @@ jobs:
         sleep 60
         
         echo "Checking service health..."
-        docker-compose ps
+        docker compose ps
         
         echo "Checking frontend..."
         curl -f http://localhost:3000 || exit 1
@@ -174,11 +174,11 @@ jobs:
       if: failure()
       run: |
         echo "=== Backend Logs ==="
-        docker-compose logs backend
+        docker compose logs backend
         echo "=== Python Service Logs ==="
-        docker-compose logs python-service
+        docker compose logs python-service
         echo "=== Frontend Logs ==="
-        docker-compose logs frontend
+        docker compose logs frontend
     
     - name: Upload screenshots
       if: always()
@@ -199,4 +199,4 @@ jobs:
     - name: Cleanup
       if: always()
       run: |
-        docker-compose down -v
+        docker compose down -v
