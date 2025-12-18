@@ -237,7 +237,36 @@ kol_video_translation/
 │   │   └── main.jsx       # Entry point
 │   ├── Dockerfile         # Docker configuration
 │   └── nginx.conf         # Nginx configuration
+├── tests/                 # End-to-End tests
+│   └── e2e/
+│       └── smoke_test.py
 └── docker-compose.yml     # Docker Compose configuration
+```
+
+## Testing
+
+### Backend (Unit Tests)
+```bash
+cd backend
+go test -v ./...
+```
+
+### Frontend (Component Tests)
+```bash
+cd frontend
+npm test
+```
+
+### Python Service (Functional Tests)
+```bash
+cd python_service
+pytest test_pipeline_functional.py
+```
+
+### End-to-End (Smoke Test)
+```bash
+# Requires running stack
+python tests/e2e/smoke_test.py
 ```
 
 ## Performance Considerations
