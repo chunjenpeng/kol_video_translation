@@ -8,15 +8,15 @@ import (
 type JobStatus string
 
 const (
-	StatusPending    JobStatus = "pending"
-	StatusDownloading JobStatus = "downloading"
-	StatusTranscribing JobStatus = "transcribing"
-	StatusTranslating JobStatus = "translating"
-	StatusGeneratingVoice JobStatus = "generating_voice"
-	StatusGeneratingCaptions JobStatus = "generating_captions"
+	StatusPending             JobStatus = "pending"
+	StatusDownloading         JobStatus = "downloading"
+	StatusTranscribing        JobStatus = "transcribing"
+	StatusTranslating         JobStatus = "translating"
+	StatusGeneratingVoice     JobStatus = "generating_voice"
+	StatusGeneratingCaptions  JobStatus = "generating_captions"
 	StatusGeneratingThumbnail JobStatus = "generating_thumbnail"
-	StatusCompleted  JobStatus = "completed"
-	StatusFailed     JobStatus = "failed"
+	StatusCompleted           JobStatus = "completed"
+	StatusFailed              JobStatus = "failed"
 )
 
 // TranslationJob represents a video translation job
