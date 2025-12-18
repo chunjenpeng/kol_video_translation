@@ -81,7 +81,7 @@ jobs:
     
     - name: Upload test artifacts
       if: always()
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: youtube-test-downloads
         path: python_service/test_downloads/
@@ -182,7 +182,7 @@ jobs:
     
     - name: Upload screenshots
       if: always()
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: playwright-screenshots
         path: screenshots/
@@ -190,7 +190,7 @@ jobs:
     
     - name: Upload test videos
       if: always()
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: playwright-videos
         path: test_videos/
