@@ -107,7 +107,11 @@ class VideoProcessor:
         """Merge video with new audio and add captions"""
         from moviepy.editor import VideoFileClip, AudioFileClip
         
-        output_path = f"output/{job_id}_final.mp4"
+        # Use absolute path for shared volume
+        output_path = f"/app/output/{job_id}_final.mp4"
+        
+        # Ensure output directory exists
+        os.makedirs("/app/output", exist_ok=True)
         
         # Load video and new audio
         video = VideoFileClip(video_path)

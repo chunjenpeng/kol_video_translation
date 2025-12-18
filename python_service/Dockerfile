@@ -1,9 +1,13 @@
 FROM python:3.10-slim
 
-# Install system dependencies
+# Install system dependencies including build tools
 RUN apt-get update && apt-get install -y \
     ffmpeg \
     git \
+    build-essential \
+    cargo \
+    rustc \
+    wget \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app

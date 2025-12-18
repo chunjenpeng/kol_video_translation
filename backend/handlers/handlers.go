@@ -47,7 +47,7 @@ func GetSupportedLanguages(c *gin.Context) {
 		{Code: "ru", Name: "Russian"},
 		{Code: "ja", Name: "Japanese"},
 		{Code: "ko", Name: "Korean"},
-		{Code: "zh", Name: "Chinese (Simplified)"},
+		{Code: "zh-CN", Name: "Chinese (Simplified)"},
 		{Code: "ar", Name: "Arabic"},
 		{Code: "hi", Name: "Hindi"},
 	}
@@ -130,7 +130,20 @@ func DownloadVideo(c *gin.Context) {
 		return
 	}
 
-	c.File(job.OutputVideoPath)
+	// Handle both relative and absolute paths
+	// If path starts with "output/", convert to absolute path in shared volume
+	videoPath := job.OutputVideoPath
+	if len(videoPath) >= 7 && videoPath[:7] == "output/" {
+		videoPath = "/app/" + videoPath
+	}
+
+	// Check if file exists
+	if _, err := os.Stat(videoPath); os.IsNotExist(err) {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Video file not found on disk"})
+		return
+	}
+
+	c.File(videoPath)
 }
 
 // processJob processes a translation job by calling the Python service

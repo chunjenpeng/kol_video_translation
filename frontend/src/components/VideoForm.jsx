@@ -4,12 +4,12 @@ import './VideoForm.css';
 function VideoForm({ languages, onSubmit }) {
   const [youtubeUrl, setYoutubeUrl] = useState('');
   const [sourceLanguage, setSourceLanguage] = useState('en');
-  const [targetLanguage, setTargetLanguage] = useState('es');
+  const [targetLanguage, setTargetLanguage] = useState('zh-CN');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     // Validate YouTube URL
     if (!youtubeUrl.trim()) {
       alert('Please enter a YouTube URL');

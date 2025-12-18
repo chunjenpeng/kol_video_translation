@@ -49,22 +49,43 @@ jobs:
       with:
         python-version: '3.10'
     
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y ffmpeg
+    
     - name: Check Python Syntax
       working-directory: ./python_service
       run: |
         python -m py_compile app.py
         python -m py_compile services/*.py
+        python -m py_compile test_youtube_download.py
     
     - name: Install Python dependencies (basic)
       working-directory: ./python_service
       run: |
-        pip install flask flask-cors requests python-dotenv
+        pip install flask flask-cors requests python-dotenv yt-dlp
     
     - name: Verify Python imports
       working-directory: ./python_service
       run: |
         python -c "import flask; print('Flask OK')"
         python -c "from flask_cors import CORS; print('Flask-CORS OK')"
+        python -c "import yt_dlp; print('yt-dlp OK')"
+    
+    - name: Run YouTube Download Functional Test
+      working-directory: ./python_service
+      continue-on-error: true  # Allow failure due to YouTube API rate limiting
+      run: |
+        python test_youtube_download.py
+    
+    - name: Upload test artifacts
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: youtube-test-downloads
+        path: python_service/test_downloads/
+        retention-days: 7
 
   test-frontend:
     name: Test React Frontend
@@ -105,3 +126,77 @@ jobs:
     - name: Test Docker Compose Configuration
       run: |
         docker-compose config
+
+  test-e2e-browser:
+    name: End-to-End Browser Test
+    runs-on: ubuntu-latest
+    needs: [test-backend, test-python, test-frontend]
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+    
+    - name: Install Playwright and dependencies
+      run: |
+        pip install playwright
+        playwright install chromium
+        playwright install-deps chromium
+    
+    - name: Build and start all services
+      run: |
+        docker-compose up -d --build
+    
+    - name: Wait for services to be ready
+      run: |
+        echo "Waiting 60 seconds for services to start..."
+        sleep 60
+        
+        echo "Checking service health..."
+        docker-compose ps
+        
+        echo "Checking frontend..."
+        curl -f http://localhost:3000 || exit 1
+        
+        echo "Checking backend..."
+        curl -f http://localhost:8080 || exit 1
+        
+        echo "All services are up!"
+    
+    - name: Run Browser E2E Test
+      run: |
+        python test_e2e_browser.py
+    
+    - name: Show service logs on failure
+      if: failure()
+      run: |
+        echo "=== Backend Logs ==="
+        docker-compose logs backend
+        echo "=== Python Service Logs ==="
+        docker-compose logs python-service
+        echo "=== Frontend Logs ==="
+        docker-compose logs frontend
+    
+    - name: Upload screenshots
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: playwright-screenshots
+        path: screenshots/
+        retention-days: 7
+    
+    - name: Upload test videos
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: playwright-videos
+        path: test_videos/
+        retention-days: 7
+    
+    - name: Cleanup
+      if: always()
+      run: |
+        docker-compose down -v
