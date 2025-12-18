@@ -221,7 +221,6 @@ dist/
 *.dylib
 *.test
 *.out
-go.sum
 
 # Frontend
 frontend/dist/
