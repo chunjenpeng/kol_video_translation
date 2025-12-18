@@ -16,7 +16,8 @@
 
 ### Backend (Golang)
 - **Gin Framework**: RESTful API server
-- **Job Management**: Asynchronous processing with status tracking
+- **Go-Redis**: Redis client for job management
+- **Job Management**: Asynchronous processing with Redis queue
 - **CORS Support**: Cross-origin resource sharing
 
 ### Python Service
@@ -37,16 +38,16 @@
 ## Architecture
 
 ```
-┌─────────────┐      ┌──────────────┐      ┌─────────────────┐
-│   React     │─────▶│   Golang     │─────▶│  Python Service │
-│  Frontend   │      │   Backend    │      │   (Processing)  │
-└─────────────┘      └──────────────┘      └─────────────────┘
-                            │
-                            ▼
-                     ┌──────────────┐
-                     │ File Storage │
-                     │ (Output/Temp)│
-                     └──────────────┘
+┌─────────────┐      ┌──────────────┐      ┌──────────────┐      ┌─────────────────┐
+│   React     │─────▶│   Golang     │─────▶│    Redis     │─────▶│  Python Service │
+│  Frontend   │      │   Backend    │      │ (Queue/DB)   │      │    (Worker)     │
+└─────────────┘      └──────────────┘      └──────────────┘      └─────────────────┘
+                            │                     │
+                            ▼                     ▼
+                     ┌──────────────┐      ┌──────────────┐
+                     │ File Storage │      │ File Storage │
+                     │ (Output/Temp)│      │ (Output/Temp)│
+                     └──────────────┘      └──────────────┘
 ```
 
 ## Prerequisites
@@ -60,6 +61,9 @@
 ### For Docker Deployment
 - Docker
 - Docker Compose
+
+### Infrastructure
+- Redis 7+ (Required for job queue and persistence)
 
 ## Installation & Setup
 

@@ -16,6 +16,9 @@ func main() {
 		log.Println("No .env file found, using environment variables")
 	}
 
+	// Initialize Redis
+	handlers.InitRedis()
+
 	// Initialize Gin router
 	router := gin.Default()
 
@@ -28,7 +31,6 @@ func main() {
 		api.GET("/health", handlers.HealthCheck)
 		api.POST("/translate", handlers.TranslateVideo)
 		api.GET("/job/:id", handlers.GetJobStatus)
-		api.PUT("/job/:id", handlers.UpdateJobFromPython)
 		api.GET("/download/:id", handlers.DownloadVideo)
 		api.GET("/languages", handlers.GetSupportedLanguages)
 	}
