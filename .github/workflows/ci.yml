@@ -1,0 +1,162 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, develop, copilot/** ]
+  pull_request:
+    branches: [ main, develop ]
+
+permissions:
+  contents: read
+
+jobs:
+  test-backend:
+    name: Test Go Backend
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.21'
+        cache-dependency-path: backend/go.sum
+    
+    - name: Build Backend
+      working-directory: ./backend
+      run: |
+        go mod download
+        go build -v ./...
+
+    - name: Run Backend Unit Tests
+      working-directory: ./backend
+      run: go test -v ./...
+    
+    - name: Verify Go Code Format
+      working-directory: ./backend
+      run: |
+        if [ "$(gofmt -s -l . | wc -l)" -gt 0 ]; then
+          echo "Go code is not formatted:"
+          gofmt -s -l .
+          exit 1
+        fi
+
+  test-python:
+    name: Test Python Service
+    runs-on: ubuntu-latest
+    
+    # Add Redis service for integration tests
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+    
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y ffmpeg
+    
+    - name: Check Python Syntax
+      working-directory: ./python_service
+      run: |
+        python -m py_compile app.py
+        python -m py_compile services/*.py
+        python -m py_compile test_youtube_download.py
+    
+    - name: Install Python dependencies
+      working-directory: ./python_service
+      run: |
+        pip install -r requirements.txt
+    
+    - name: Verify Python imports
+      working-directory: ./python_service
+      run: |
+        python -c "import flask; print('Flask OK')"
+        python -c "from flask_cors import CORS; print('Flask-CORS OK')"
+        python -c "import yt_dlp; print('yt-dlp OK')"
+        python -c "import redis; print('Redis OK')"
+    
+    - name: Run YouTube Download Test
+      working-directory: ./python_service
+      continue-on-error: true  # Allow failure due to YouTube API rate limiting
+      env:
+        REDIS_HOST: localhost
+        REDIS_PORT: 6379
+      run: |
+        python test_youtube_download.py
+
+    - name: Run Pipeline Functional Test
+      working-directory: ./python_service
+      continue-on-error: true # Allow failure due to external APIs
+      env:
+        REDIS_HOST: localhost
+        REDIS_PORT: 6379
+      run: |
+        pytest test_pipeline_functional.py
+    
+    - name: Upload test artifacts
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: youtube-test-downloads
+        path: python_service/test_downloads/
+        retention-days: 7
+
+  test-frontend:
+    name: Test React Frontend
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+    
+    - name: Install dependencies
+      working-directory: ./frontend
+      run: npm ci
+    
+    - name: Run Frontend Tests
+      working-directory: ./frontend
+      run: npm test -- run
+
+    - name: Build frontend
+      working-directory: ./frontend
+      run: npm run build
+    
+    - name: Check for build artifacts
+      working-directory: ./frontend
+      run: |
+        if [ ! -d "dist" ]; then
+          echo "Build failed: dist directory not found"
+          exit 1
+        fi
+        echo "Build successful"
+
+  docker-build:
+    name: Docker Build Test
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Test Docker Compose Configuration
+      run: |
+        docker compose config

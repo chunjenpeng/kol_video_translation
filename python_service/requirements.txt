@@ -1,0 +1,17 @@
+flask
+flask-cors
+requests
+python-dotenv
+yt-dlp
+redis
+moviepy
+openai
+gTTS
+Pillow
+pydub
+scipy
+soundfile
+pytest
+pytest-mock
+openai-whisper
+setuptools-rust
