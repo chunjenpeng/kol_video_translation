@@ -44,7 +44,7 @@ func InitRedis() {
 	})
 
 	// Test connection
-	ctx := rdb.Context()
+	ctx := context.Background()
 	if err := rdb.Ping(ctx).Err(); err != nil {
 		log.Fatalf("Failed to connect to Redis: %v", err)
 	}
