@@ -62,6 +62,10 @@ func InitRedis() {
 func SetRedisClient(client *redis.Client) {
 	rdb = client
 	jobService = services.NewJobService(client)
+	// Initialize regex for tests
+	if youtubeURLRegex == nil {
+		youtubeURLRegex = regexp.MustCompile(constants.YouTubeURLPattern)
+	}
 }
 
 // HealthCheck returns the health status of the API

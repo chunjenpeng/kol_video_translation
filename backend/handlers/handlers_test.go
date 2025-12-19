@@ -137,7 +137,7 @@ func TestGetJobStatus(t *testing.T) {
 
 		var response models.TranslationJob
 		json.Unmarshal(w.Body.Bytes(), &response)
-		assert.Equal(t, constants.StatusCompleted, response.Status)
+		assert.Equal(t, string(constants.StatusCompleted), string(response.Status))
 	})
 
 	t.Run("Job Not Found", func(t *testing.T) {
