@@ -2,22 +2,24 @@ package handlers
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 	"os"
+	"regexp"
 	"time"
 
+	"github.com/chunjenpeng/kol_video_translation/backend/constants"
 	"github.com/chunjenpeng/kol_video_translation/backend/models"
+	"github.com/chunjenpeng/kol_video_translation/backend/services"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
 )
 
 var (
-	rdb *redis.Client
-	ctx = context.Background()
+	rdb             *redis.Client
+	jobService      *services.JobService
+	youtubeURLRegex *regexp.Regexp
 	// GenerateID is used to generate unique IDs (can be mocked for testing)
 	GenerateID = func() string {
 		return uuid.New().String()
@@ -26,7 +28,7 @@ var (
 	Now = time.Now
 )
 
-// InitRedis initializes the Redis client
+// InitRedis initializes the Redis client and job service
 func InitRedis() {
 	redisHost := os.Getenv("REDIS_HOST")
 	if redisHost == "" {
@@ -38,25 +40,34 @@ func InitRedis() {
 	}
 
 	rdb = redis.NewClient(&redis.Options{
-		Addr: fmt.Sprintf("%s:%s", redisHost, redisPort),
+		Addr: redisHost + ":" + redisPort,
 	})
 
 	// Test connection
-	_, err := rdb.Ping(ctx).Result()
-	if err != nil {
+	ctx := rdb.Context()
+	if err := rdb.Ping(ctx).Err(); err != nil {
 		log.Fatalf("Failed to connect to Redis: %v", err)
 	}
+
+	// Initialize job service
+	jobService = services.NewJobService(rdb)
+
+	// Compile YouTube URL regex
+	youtubeURLRegex = regexp.MustCompile(constants.YouTubeURLPattern)
+
 	log.Println("Connected to Redis successfully")
 }
 
 // SetRedisClient sets the Redis client (used for testing)
 func SetRedisClient(client *redis.Client) {
 	rdb = client
+	jobService = services.NewJobService(client)
 }
 
 // HealthCheck returns the health status of the API
 func HealthCheck(c *gin.Context) {
 	redisStatus := "up"
+	ctx := context.Background()
 	if _, err := rdb.Ping(ctx).Result(); err != nil {
 		redisStatus = "down"
 	}
@@ -94,48 +105,54 @@ func GetSupportedLanguages(c *gin.Context) {
 func TranslateVideo(c *gin.Context) {
 	var req models.TranslationRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   "invalid request body",
+			"details": err.Error(),
+		})
 		return
 	}
 
-	// Create a new job
-	job := &models.TranslationJob{
-		ID:             GenerateID(),
-		YouTubeURL:     req.YouTubeURL,
-		SourceLanguage: req.SourceLanguage,
-		TargetLanguage: req.TargetLanguage,
-		Status:         models.StatusPending,
-		Progress:       0,
-		CreatedAt:      Now(),
-		UpdatedAt:      Now(),
-	}
-
-	// Serialize job to JSON
-	jobJSON, err := json.Marshal(job)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to serialize job"})
+	// Validate required fields
+	if req.YouTubeURL == "" || req.SourceLanguage == "" || req.TargetLanguage == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "missing required fields",
+			"details": gin.H{
+				"youtube_url":     req.YouTubeURL == "",
+				"source_language": req.SourceLanguage == "",
+				"target_language": req.TargetLanguage == "",
+			},
+		})
 		return
 	}
 
-	// Save to Redis (Key: job:{id})
-	err = rdb.Set(ctx, fmt.Sprintf("job:%s", job.ID), jobJSON, 24*time.Hour).Err() // Expire in 24 hours
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save job to Redis"})
+	// Validate YouTube URL format
+	if !youtubeURLRegex.MatchString(req.YouTubeURL) {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   "invalid YouTube URL format",
+			"details": "URL must be in format: https://www.youtube.com/watch?v=... or https://youtu.be/...",
+		})
 		return
 	}
 
-	// Push job ID to Queue (List: jobs_queue)
-	err = rdb.RPush(ctx, "jobs_queue", job.ID).Err()
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to add job to queue"})
+	// Generate job ID
+	jobID := GenerateID()
+
+	// Create job using service layer
+	createdAt := Now()
+	if err := jobService.CreateJob(jobID, req, createdAt); err != nil {
+		log.Printf("Error creating job: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":   "failed to create job",
+			"details": err.Error(),
+		})
 		return
 	}
 
-	log.Printf("Job %s submitted and queued", job.ID)
+	log.Printf("Job %s submitted and queued", jobID)
 
 	c.JSON(http.StatusAccepted, gin.H{
-		"job_id": job.ID,
-		"status": job.Status,
+		"job_id": jobID,
+		"status": constants.StatusPending,
 	})
 }
 
@@ -143,19 +160,18 @@ func TranslateVideo(c *gin.Context) {
 func GetJobStatus(c *gin.Context) {
 	jobID := c.Param("id")
 
-	// Get job from Redis
-	val, err := rdb.Get(ctx, fmt.Sprintf("job:%s", jobID)).Result()
-	if err == redis.Nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Job not found"})
-		return
-	} else if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error"})
-		return
-	}
-
-	var job models.TranslationJob
-	if err := json.Unmarshal([]byte(val), &job); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to parse job data"})
+	// Get job using service layer
+	job, err := jobService.GetJob(jobID)
+	if err != nil {
+		if err.Error() == "job not found" {
+			c.JSON(http.StatusNotFound, gin.H{"error": "job not found"})
+		} else {
+			log.Printf("Error getting job: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error":   "failed to retrieve job",
+				"details": err.Error(),
+			})
+		}
 		return
 	}
 
@@ -166,34 +182,32 @@ func GetJobStatus(c *gin.Context) {
 func DownloadVideo(c *gin.Context) {
 	jobID := c.Param("id")
 
-	// Get job from Redis
-	val, err := rdb.Get(ctx, fmt.Sprintf("job:%s", jobID)).Result()
-	if err == redis.Nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Job not found"})
-		return
-	} else if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error"})
+	// Get job using service layer
+	job, err := jobService.GetJob(jobID)
+	if err != nil {
+		if err.Error() == "job not found" {
+			c.JSON(http.StatusNotFound, gin.H{"error": "job not found"})
+		} else {
+			log.Printf("Error getting job: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error":   "failed to retrieve job",
+				"details": err.Error(),
+			})
+		}
 		return
 	}
 
-	var job models.TranslationJob
-	if err := json.Unmarshal([]byte(val), &job); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to parse job data"})
-		return
-	}
-
-	if job.Status != models.StatusCompleted {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Job not completed yet"})
+	if job.Status != constants.StatusCompleted {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "job not completed yet"})
 		return
 	}
 
 	if job.OutputVideoPath == "" {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Video file not found"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "video file not found"})
 		return
 	}
 
 	// Handle both relative and absolute paths
-	// If path starts with "output/", convert to absolute path in shared volume
 	videoPath := job.OutputVideoPath
 	if len(videoPath) >= 7 && videoPath[:7] == "output/" {
 		videoPath = "/app/" + videoPath
@@ -201,7 +215,7 @@ func DownloadVideo(c *gin.Context) {
 
 	// Check if file exists
 	if _, err := os.Stat(videoPath); os.IsNotExist(err) {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Video file not found on disk"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "video file not found on disk"})
 		return
 	}
 
