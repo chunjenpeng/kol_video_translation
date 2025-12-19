@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import PropTypes from 'prop-types';
 import './VideoForm.css';
 
 function VideoForm({ languages, onSubmit }) {
@@ -10,15 +11,16 @@ function VideoForm({ languages, onSubmit }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Validate YouTube URL
-    if (!youtubeUrl.trim()) {
+    // Sanitize and validate YouTube URL
+    const sanitizedUrl = youtubeUrl.trim();
+    if (!sanitizedUrl) {
       alert('Please enter a YouTube URL');
       return;
     }
 
-    // Proper YouTube URL validation to prevent URL injection
+    // Strict YouTube URL validation to prevent injection
     const youtubeRegex = /^(https?:\/\/)?(www\.)?(youtube\.com\/watch\?v=|youtu\.be\/)[a-zA-Z0-9_-]{11}$/;
-    if (!youtubeRegex.test(youtubeUrl.trim())) {
+    if (!youtubeRegex.test(sanitizedUrl)) {
       alert('Please enter a valid YouTube URL (e.g., https://www.youtube.com/watch?v=...)');
       return;
     }
@@ -30,7 +32,7 @@ function VideoForm({ languages, onSubmit }) {
 
     setIsSubmitting(true);
     try {
-      await onSubmit(youtubeUrl, sourceLanguage, targetLanguage);
+      await onSubmit(sanitizedUrl, sourceLanguage, targetLanguage);
     } finally {
       setIsSubmitting(false);
     }
@@ -116,5 +118,15 @@ function VideoForm({ languages, onSubmit }) {
     </div>
   );
 }
+
+VideoForm.propTypes = {
+  languages: PropTypes.arrayOf(
+    PropTypes.shape({
+      code: PropTypes.string.isRequired,
+      name: PropTypes.string.isRequired,
+    })
+  ).isRequired,
+  onSubmit: PropTypes.func.isRequired,
+};
 
 export default VideoForm;

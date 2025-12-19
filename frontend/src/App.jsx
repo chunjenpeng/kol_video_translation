@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import VideoForm from './components/VideoForm';
 import JobStatus from './components/JobStatus';
+import ErrorMessage from './components/ErrorMessage';
 import './App.css';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api/v1';
@@ -42,7 +43,7 @@ function App() {
     try {
       const response = await axios.get(`${API_BASE_URL}/job/${id}`);
       setJobStatus(response.data);
-      
+
       // Stop polling if job is completed or failed
       if (response.data.status === 'completed' || response.data.status === 'failed') {
         setJobId(null);
@@ -55,14 +56,14 @@ function App() {
   const handleSubmit = async (youtubeUrl, sourceLanguage, targetLanguage) => {
     setError(null);
     setJobStatus(null);
-    
+
     try {
       const response = await axios.post(`${API_BASE_URL}/translate`, {
         youtube_url: youtubeUrl,
         source_language: sourceLanguage,
         target_language: targetLanguage,
       });
-      
+
       setJobId(response.data.job_id);
       setJobStatus({
         id: response.data.job_id,
@@ -71,7 +72,9 @@ function App() {
       });
     } catch (err) {
       console.error('Error submitting translation job:', err);
-      setError(err.response?.data?.error || 'Failed to submit translation job');
+      const errorMsg = err.response?.data?.error || 'Failed to submit translation job';
+      const details = err.response?.data?.details;
+      setError(details ? `${errorMsg}: ${details}` : errorMsg);
     }
   };
 
@@ -89,11 +92,7 @@ function App() {
           <p>Translate YouTube videos with AI-powered voice cloning</p>
         </header>
 
-        {error && (
-          <div className="error-message">
-            <p>{error}</p>
-          </div>
-        )}
+        <ErrorMessage message={error} onDismiss={() => setError(null)} />
 
         {!jobStatus ? (
           <VideoForm
