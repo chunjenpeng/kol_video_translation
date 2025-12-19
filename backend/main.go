@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"os"
+	"time"
 
 	"github.com/chunjenpeng/kol_video_translation/backend/handlers"
 	"github.com/chunjenpeng/kol_video_translation/backend/middleware"
@@ -25,11 +26,15 @@ func main() {
 	// Apply middleware
 	router.Use(middleware.CORSMiddleware())
 
+	// Create rate limiter: 10 requests per minute per IP
+	rateLimiter := middleware.NewRateLimiter(10, time.Minute)
+
 	// API routes
 	api := router.Group("/api/v1")
 	{
 		api.GET("/health", handlers.HealthCheck)
-		api.POST("/translate", handlers.TranslateVideo)
+		// Apply rate limiting to resource-intensive endpoints
+		api.POST("/translate", rateLimiter.Middleware(), handlers.TranslateVideo)
 		api.GET("/job/:id", handlers.GetJobStatus)
 		api.GET("/download/:id", handlers.DownloadVideo)
 		api.GET("/languages", handlers.GetSupportedLanguages)

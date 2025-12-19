@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import './JobStatus.css';
 
 function JobStatus({ jobStatus, onNewTranslation, apiBaseUrl }) {
@@ -105,5 +106,17 @@ function JobStatus({ jobStatus, onNewTranslation, apiBaseUrl }) {
     </div>
   );
 }
+
+JobStatus.propTypes = {
+  jobStatus: PropTypes.shape({
+    id: PropTypes.string.isRequired,
+    status: PropTypes.string.isRequired,
+    progress: PropTypes.number,
+    error_message: PropTypes.string,
+    captions_path: PropTypes.string,
+  }).isRequired,
+  onNewTranslation: PropTypes.func.isRequired,
+  apiBaseUrl: PropTypes.string.isRequired,
+};
 
 export default JobStatus;
