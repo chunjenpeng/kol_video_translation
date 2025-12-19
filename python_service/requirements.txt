@@ -15,3 +15,4 @@ pytest
 pytest-mock
 openai-whisper
 setuptools-rust
+deep-translator
